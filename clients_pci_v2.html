@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#C2241E">
+<title>Gestió Clients PCI · Plana Fàbrega</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: #C2241E; color: #fff; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header p { font-size: 12px; opacity: 0.65; margin-top: 2px; }
+  .mes-selector { display: flex; gap: 8px; }
+  .mes-selector select { padding: 6px 10px; border-radius: 8px; border: none; font-size: 13px; background: rgba(255,255,255,0.15); color: #fff; cursor: pointer; }
+  .mes-selector select option { color: #000; background: #fff; }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px 24px 0; max-width: 960px; margin: 0 auto; }
+  .stat-card { background: #fff; border-radius: 12px; padding: 14px 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+  .stat-icon { font-size: 20px; }
+  .stat-val { font-size: 26px; font-weight: 700; margin-top: 2px; }
+  .stat-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  /* TOOLBAR */
+  .toolbar { display: flex; gap: 10px; padding: 14px 24px; max-width: 960px; margin: 0 auto; flex-wrap: wrap; }
+  .toolbar input, .toolbar select { padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 13px; background: #fff; }
+  .toolbar input { flex: 1; min-width: 180px; }
+  .btn-primary { background: #1d4ed8; color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .btn-primary:hover { background: #1e40af; }
+
+  /* CLIENT CARDS */
+  .clients-list { display: flex; flex-direction: column; gap: 12px; padding: 0 24px 24px; max-width: 960px; margin: 0 auto; }
+  .client-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 4px solid #cbd5e1; }
+  .client-card.alta { border-left-color: #ef4444; }
+  .client-card.mitjana { border-left-color: #f59e0b; }
+  .client-card.baixa { border-left-color: #10b981; }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .card-info { flex: 1; }
+  .card-name { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-empresa { font-size: 13px; color: #475569; margin-top: 3px; }
+  .card-contacte { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .card-notes { font-size: 12px; color: #64748b; margin-top: 6px; background: #f8fafc; border-radius: 6px; padding: 4px 8px; }
+  .card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .card-btns { display: flex; gap: 6px; }
+
+  .badge { border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+  .badge-alta { background: #fef2f2; color: #ef4444; border: 1px solid #ef4444; }
+  .badge-mitjana { background: #fffbeb; color: #f59e0b; border: 1px solid #f59e0b; }
+  .badge-baixa { background: #f0fdf4; color: #10b981; border: 1px solid #10b981; }
+  .badge-tipus { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+  .btn-icon { background: #f1f5f9; border: none; border-radius: 7px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+  .btn-icon:hover { background: #e2e8f0; }
+  .btn-ia { background: #ede9fe; color: #7c3aed; border: none; border-radius: 7px; padding: 5px 10px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .btn-ia:hover { background: #ddd6fe; }
+  .btn-delete { background: #fef2f2; color: #ef4444; border: none; border-radius: 7px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+
+  .btn-estat { border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600; text-align: center; background: #f8fafc; }
+  .btn-estat:hover { background: #f1f5f9; }
+  .btn-estat .nota-text { font-size: 11px; color: #64748b; font-weight: 400; margin-top: 2px; }
+
+  .historial { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .hist-pill { font-size: 11px; background: #f1f5f9; border-radius: 6px; padding: 2px 8px; color: #475569; }
+
+  .empty { text-align: center; padding: 40px; color: #94a3b8; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 14px; padding: 24px; min-width: 320px; max-width: 500px; width: 90%; box-shadow: 0 8px 40px rgba(0,0,0,0.18); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; margin-bottom: 16px; }
+  .modal label { font-size: 12px; color: #64748b; display: block; margin-bottom: 4px; margin-top: 10px; }
+  .modal input, .modal textarea, .modal select { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 13px; font-family: inherit; }
+  .modal textarea { resize: vertical; }
+  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .btn-cancel { padding: 8px 18px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; font-size: 13px; }
+
+  .prior-btns { display: flex; gap: 8px; margin-top: 4px; }
+  .prior-btn { flex: 1; padding: 8px; border-radius: 8px; border: 2px solid #e2e8f0; background: #fff; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .prior-btn.selected-alta { border-color: #ef4444; background: #fef2f2; color: #ef4444; }
+  .prior-btn.selected-mitjana { border-color: #f59e0b; background: #fffbeb; color: #f59e0b; }
+  .prior-btn.selected-baixa { border-color: #10b981; background: #f0fdf4; color: #10b981; }
+
+  .estat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .estat-btn { padding: 10px; border-radius: 8px; border: 2px solid #e2e8f0; background: #fff; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .estat-btn.selected { border-color: #1d4ed8; background: #eff6ff; }
+
+  /* IA CHAT */
+  .chat-box { background: #f8fafc; border-radius: 8px; padding: 12px; min-height: 160px; max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .msg { max-width: 85%; border-radius: 10px; padding: 8px 12px; font-size: 13px; line-height: 1.5; }
+  .msg.user { align-self: flex-end; background: #1d4ed8; color: #fff; }
+  .msg.assistant { align-self: flex-start; background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input-row input { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 13px; }
+
+  @media(max-width: 600px) {
+    .stats { grid-template-columns: repeat(3,1fr); }
+    .toolbar { padding: 12px 14px; }
+    .clients-list { padding: 0 14px 20px; }
+    .card-top { flex-direction: column; }
+    .card-actions { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <h1>🛡️ Gestió de Clients PCI</h1>
+    <p>Plana Fàbrega · Grup Pyrénées</p>
+  </div>
+  <div class="mes-selector">
+    <select id="selMes"></select>
+    <select id="selAny"></select>
+    <button onclick="refrescar()" title="Actualitzar dades" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:14px">🔄</button>
+  </div>
+</div>
+
+<!-- BANNER AVISOS -->
+<div id="bannerAvisos" style="display:none; background:#fef3c7; border-bottom:2px solid #f59e0b; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span style="font-size:20px;">🔔</span>
+    <span id="bannerText" style="font-size:13px; color:#78350f; font-weight:600;"></span>
+  </div>
+  <button onclick="tancarBanner()" style="background:none; border:none; color:#78350f; font-size:16px; cursor:pointer;">✕</button>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-icon">👥</div>
+    <div class="stat-val" id="statTotal" style="color:#1d4ed8">0</div>
+    <div class="stat-label">Total clients</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⏳</div>
+    <div class="stat-val" id="statPendents" style="color:#f59e0b">0</div>
+    <div class="stat-label" id="statPendentsLabel">Pendents</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">✅</div>
+    <div class="stat-val" id="statContactats" style="color:#10b981">0</div>
+    <div class="stat-label">Contactats</div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <input type="text" id="cercador" placeholder="🔍 Cerca client o empresa...">
+  <select id="filtrePrioritat">
+    <option value="tots">Totes les prioritats</option>
+    <option value="alta">Alta</option>
+    <option value="mitjana">Mitjana</option>
+    <option value="baixa">Baixa</option>
+  </select>
+  <button class="btn-primary" onclick="obrirModalClient(null)">+ Nou client</button>
+</div>
+
+<!-- LLISTA -->
+<div class="clients-list" id="clientsList"></div>
+
+<!-- MODAL CLIENT -->
+<div class="modal-overlay" id="modalClient">
+  <div class="modal">
+    <h3 id="modalClientTitol">Nou client</h3>
+    <input type="hidden" id="clientId">
+    <label>Nom</label><input type="text" id="clientNom">
+    <label>Empresa</label><input type="text" id="clientEmpresa">
+    <label>Telèfon</label><input type="text" id="clientTelefon">
+    <label>Email</label><input type="text" id="clientEmail">
+    <label>Tipus (PCI, Intrusió, PCI+Intrusió...)</label><input type="text" id="clientTipus">
+    <label>Prioritat</label>
+    <div class="prior-btns">
+      <button class="prior-btn" id="btn-alta" onclick="selPrioritat('alta')">Alta</button>
+      <button class="prior-btn" id="btn-mitjana" onclick="selPrioritat('mitjana')">Mitjana</button>
+      <button class="prior-btn" id="btn-baixa" onclick="selPrioritat('baixa')">Baixa</button>
+    </div>
+    <input type="hidden" id="clientPrioritat" value="mitjana">
+    <label>Periodicitat de contacte</label>
+    <select id="clientPeriodicitat">
+      <option value="setmanal">Setmanal (cada 7 dies)</option>
+      <option value="quinzenal">Quinzenal (cada 15 dies)</option>
+      <option value="mensual">Mensual (cada 30 dies)</option>
+      <option value="trimestral">Trimestral (cada 90 dies)</option>
+    </select>
+    <label>Notes</label><textarea id="clientNotes" rows="3"></textarea>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="tancarModal('modalClient')">Cancel·lar</button>
+      <button class="btn-primary" onclick="guardarClient()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTACTE -->
+<div class="modal-overlay" id="modalContacte">
+  <div class="modal">
+    <h3 id="modalContacteTitol">Registrar contacte</h3>
+    <input type="hidden" id="contacteClientId">
+    <input type="hidden" id="contacteMes">
+    <input type="hidden" id="contacteAny">
+    <label>Estat</label>
+    <div class="estat-grid">
+      <button class="estat-btn" id="ebtn-pendent" onclick="selEstat('pendent')">⏳ Pendent</button>
+      <button class="estat-btn" id="ebtn-contactat" onclick="selEstat('contactat')">📞 Contactat</button>
+      <button class="estat-btn" id="ebtn-visitat" onclick="selEstat('visitat')">✅ Visitat</button>
+      <button class="estat-btn" id="ebtn-ajornat" onclick="selEstat('ajornat')">📅 Ajornat</button>
+    </div>
+    <input type="hidden" id="contacteEstat" value="pendent">
+    <label>Nota (opcional)</label>
+    <input type="text" id="contacteNota" placeholder="p.ex. Pressupost enviat, cita pendent...">
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="tancarModal('modalContacte')">Cancel·lar</button>
+      <button class="btn-primary" onclick="guardarContacte()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IA -->
+<div class="modal-overlay" id="modalIA">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0" id="modalIATitol">🤖 Assistent IA</h3>
+      <button onclick="tancarModal('modalIA')" style="background:none;border:none;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Escriu la teva pregunta..." onkeydown="if(event.key==='Enter')enviarMissatge()">
+      <button class="btn-primary" onclick="enviarMissatge()">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://hfmluwhvbuzrpttnpsms.supabase.co";
+const SUPABASE_KEY = "sb_publishable_NqXe_d3Q_2BikVuqD6BHiQ_Mb9Af5gx";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const MESOS = ["Gener","Febrer","Març","Abril","Maig","Juny","Juliol","Agost","Setembre","Octubre","Novembre","Desembre"];
+const ESTATS_INFO = { pendent:{icon:"⏳",label:"Pendent"}, contactat:{icon:"📞",label:"Contactat"}, visitat:{icon:"✅",label:"Visitat"}, ajornat:{icon:"📅",label:"Ajornat"} };
+const PERIODICITATS = { setmanal:{label:"Setmanal",dies:7}, quinzenal:{label:"Quinzenal",dies:15}, mensual:{label:"Mensual",dies:30}, trimestral:{label:"Trimestral",dies:90} };
+
+let clients = [];
+let mesActual = new Date().getMonth();
+let anyActual = new Date().getFullYear();
+let chatClientId = null;
+let chatHistorial = [];
+
+// ---- INIT ----
+async function init() {
+  // Poblar selectors mes/any
+  const selMes = document.getElementById('selMes');
+  MESOS.forEach((m,i) => { const o = document.createElement('option'); o.value=i; o.textContent=m; if(i===mesActual)o.selected=true; selMes.appendChild(o); });
+  const selAny = document.getElementById('selAny');
+  [2025,2026,2027].forEach(a => { const o = document.createElement('option'); o.value=a; o.textContent=a; if(a===anyActual)o.selected=true; selAny.appendChild(o); });
+  selMes.addEventListener('change', () => { mesActual=+selMes.value; renderClients(); });
+  selAny.addEventListener('change', () => { anyActual=+selAny.value; renderClients(); });
+
+  document.getElementById('cercador').addEventListener('input', renderClients);
+  document.getElementById('filtrePrioritat').addEventListener('change', renderClients);
+
+  // Tancar modal en fer clic fora
+  ['modalClient','modalContacte','modalIA'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e){ if(e.target===this) tancarModal(id); });
+  });
+
+  document.getElementById('clientsList').innerHTML = '<div class="empty">Carregant clients...</div>';
+  await carregarClients();
+  renderClients();
+}
+
+async function carregarClients() {
+  const { data, error } = await supabaseClient.from('clients_pci').select('*');
+  if (error) {
+    console.error('Error carregant clients:', error);
+    alert('Error connectant amb la base de dades. Revisa la connexió.');
+    clients = [];
+    return;
+  }
+  if (data && data.length > 0) {
+    clients = data;
+  } else {
+    // Primera vegada: clients de mostra
+    clients = [
+      { id:1, nom:"Joan Martí", empresa:"Hotel Pyrénées", telefon:"376 123 456", email:"jmarti@pyrenees.ad", tipus:"PCI + Intrusió", prioritat:"alta", notes:"Renovació central alarma pendent. Revisió anual al juny.", contactes:[{mes:4,any:2026,estat:"contactat",nota:"Pressupost enviat"},{mes:3,any:2026,estat:"visitat",nota:"Auditoria PCI feta"}] },
+      { id:2, nom:"Maria Puig", empresa:"Residència Can Dret", telefon:"376 234 567", email:"mpuig@candret.com", tipus:"PCI", prioritat:"mitjana", notes:"Instal·lació nova. Client nou des de febrer.", contactes:[{mes:5,any:2026,estat:"pendent",nota:""}] },
+      { id:3, nom:"Andreu Sala", empresa:"Oficines Andbank", telefon:"376 345 678", email:"asala@andbank.ad", tipus:"Intrusió", prioritat:"baixa", notes:"Contracte manteniment actiu fins desembre.", contactes:[] },
+    ];
+    for (const c of clients) {
+      await supabaseClient.from('clients_pci').upsert(c);
+    }
+  }
+}
+
+async function guardarClients() {
+  // Ja no cal: cada operació individual fa el seu propi upsert/delete a Supabase
+}
+
+async function guardarUnClient(client) {
+  const { error } = await supabaseClient.from('clients_pci').upsert(client);
+  if (error) { console.error(error); alert('Error guardant el client.'); }
+}
+
+async function eliminarClientDB(id) {
+  const { error } = await supabaseClient.from('clients_pci').delete().eq('id', id);
+  if (error) { console.error(error); alert('Error eliminant el client.'); }
+}
+
+// ---- RENDER ----
+function renderClients() {
+  const cerca = document.getElementById('cercador').value.toLowerCase();
+  const filtre = document.getElementById('filtrePrioritat').value;
+  const filtrats = clients.filter(c => {
+    const ok = (!cerca || c.nom.toLowerCase().includes(cerca) || c.empresa.toLowerCase().includes(cerca));
+    const okP = (filtre==='tots' || c.prioritat===filtre);
+    return ok && okP;
+  });
+
+  // Stats
+  const pendents = clients.filter(c => { const ct=getContacteMes(c); return !ct||ct.estat==='pendent'; }).length;
+  document.getElementById('statTotal').textContent = clients.length;
+  document.getElementById('statPendents').textContent = pendents;
+  document.getElementById('statPendentsLabel').textContent = `Pendents ${MESOS[mesActual]}`;
+  document.getElementById('statContactats').textContent = clients.length - pendents;
+
+  const llista = document.getElementById('clientsList');
+  if (!filtrats.length) { llista.innerHTML = '<div class="empty">Cap client trobat</div>'; return; }
+
+  llista.innerHTML = filtrats.map(c => renderCard(c)).join('');
+  actualitzarBanner();
+}
+
+function actualitzarBanner() {
+  const avui = new Date();
+  const clauOcultat = `banner_ocultat_${avui.getFullYear()}-W${getSetmana(avui)}`;
+  const jaOcultat = sessionStorage.getItem(clauOcultat);
+
+  const tocaAra = clients.filter(c => tocaContactar(c));
+
+  const banner = document.getElementById('bannerAvisos');
+  if (tocaAra.length > 0 && !jaOcultat) {
+    document.getElementById('bannerText').textContent =
+      `Toca contactar amb ${tocaAra.length} client${tocaAra.length>1?'s':''}: ` +
+      tocaAra.slice(0,5).map(c=>c.nom).join(', ') + (tocaAra.length>5?'...':'');
+    banner.style.display = 'flex';
+    banner.dataset.clau = clauOcultat;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function getSetmana(d) {
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dayNum = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - dayNum + 3);
+  const firstThursday = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date - firstThursday) / 86400000 - 3 + ((firstThursday.getDay() + 6) % 7)) / 7);
+}
+
+function tancarBanner() {
+  const banner = document.getElementById('bannerAvisos');
+  if (banner.dataset.clau) sessionStorage.setItem(banner.dataset.clau, '1');
+  banner.style.display = 'none';
+}
+
+function getContacteMes(client) {
+  return client.contactes.find(ct => ct.mes === mesActual+1 && ct.any === anyActual);
+}
+
+function getUltimContacte(client) {
+  if (!client.contactes || client.contactes.length === 0) return null;
+  const ordenats = [...client.contactes].sort((a,b) => (b.any*12+b.mes) - (a.any*12+a.mes));
+  return ordenats[0];
+}
+
+function diesDesDeUltimContacte(client) {
+  const ultim = getUltimContacte(client);
+  if (!ultim) return Infinity;
+  const dataUltim = new Date(ultim.any, ultim.mes - 1, 15);
+  const avui = new Date();
+  return Math.floor((avui - dataUltim) / 86400000);
+}
+
+function tocaContactar(client) {
+  const periode = PERIODICITATS[client.periodicitat || 'mensual'];
+  const dies = diesDesDeUltimContacte(client);
+  return dies >= periode.dies;
+}
+
+function renderCard(c) {
+  const ct = getContacteMes(c);
+  const estat = ESTATS_INFO[ct?.estat||'pendent'];
+  const priorClass = c.prioritat;
+  const badgeClass = 'badge-'+c.prioritat;
+  const priorLabels = {alta:'Alta',mitjana:'Mitjana',baixa:'Baixa'};
+  const period = PERIODICITATS[c.periodicitat||'mensual'];
+  const toca = tocaContactar(c);
+  const dies = diesDesDeUltimContacte(c);
+  const diesText = dies === Infinity ? 'Mai contactat' : `Fa ${dies} dies`;
+
+  const historial = [...c.contactes].sort((a,b)=>b.any-a.any||b.mes-a.mes).slice(0,6)
+    .map(h=>`<span class="hist-pill">${ESTATS_INFO[h.estat].icon} ${MESOS[h.mes-1].slice(0,3)} ${h.any}</span>`).join('');
+
+  return `
+  <div class="client-card ${priorClass}" style="${toca?'box-shadow:0 0 0 2px #f59e0b;':''}">
+    <div class="card-top">
+      <div class="card-info">
+        <div class="card-name">
+          ${escHtml(c.nom)}
+          <span class="badge ${badgeClass}">${priorLabels[c.prioritat]}</span>
+          <span class="badge badge-tipus">${escHtml(c.tipus||'')}</span>
+          <span class="badge" style="background:#eef2ff;color:#4338ca;border:1px solid #4338ca;">${period.label}</span>
+          ${toca?'<span class="badge" style="background:#fef3c7;color:#b45309;border:1px solid #f59e0b;">🔔 Toca contactar</span>':''}
+        </div>
+        <div class="card-empresa">🏢 ${escHtml(c.empresa)}</div>
+        <div class="card-contacte">📞 ${escHtml(c.telefon)} · ✉️ ${escHtml(c.email)} · <span style="color:${toca?'#b45309':'#94a3b8'}">${diesText}</span></div>
+        ${c.notes?`<div class="card-notes">📝 ${escHtml(c.notes)}</div>`:''}
+      </div>
+      <div class="card-actions">
+        <div class="card-btns">
+          <button class="btn-ia" onclick="obrirIA(${c.id})">🤖 IA</button>
+          <button class="btn-icon" onclick="obrirModalClient(${c.id})">✏️</button>
+          <button class="btn-delete btn-icon" onclick="eliminarClient(${c.id})">🗑️</button>
+        </div>
+        <button class="btn-estat" onclick="obrirModalContacte(${c.id})">
+          ${estat.icon} ${estat.label} · ${MESOS[mesActual].slice(0,3)}
+          ${ct?.nota?`<div class="nota-text">${escHtml(ct.nota)}</div>`:''}
+        </button>
+      </div>
+    </div>
+    ${historial?`<div class="historial">${historial}</div>`:''}
+  </div>`;
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ---- MODAL CLIENT ----
+function obrirModalClient(id) {
+  const c = id ? clients.find(x=>x.id===id) : null;
+  document.getElementById('modalClientTitol').textContent = c ? 'Editar client' : 'Nou client';
+  document.getElementById('clientId').value = c?.id||'';
+  document.getElementById('clientNom').value = c?.nom||'';
+  document.getElementById('clientEmpresa').value = c?.empresa||'';
+  document.getElementById('clientTelefon').value = c?.telefon||'';
+  document.getElementById('clientEmail').value = c?.email||'';
+  document.getElementById('clientTipus').value = c?.tipus||'PCI';
+  document.getElementById('clientNotes').value = c?.notes||'';
+  document.getElementById('clientPeriodicitat').value = c?.periodicitat||'mensual';
+  selPrioritat(c?.prioritat||'mitjana');
+  document.getElementById('modalClient').classList.add('open');
+}
+
+function selPrioritat(p) {
+  document.getElementById('clientPrioritat').value = p;
+  ['alta','mitjana','baixa'].forEach(x => {
+    const btn = document.getElementById('btn-'+x);
+    btn.className = 'prior-btn' + (x===p ? ' selected-'+x : '');
+  });
+}
+
+async function guardarClient() {
+  const id = document.getElementById('clientId').value;
+  const data = {
+    id: id ? +id : Date.now(),
+    nom: document.getElementById('clientNom').value.trim(),
+    empresa: document.getElementById('clientEmpresa').value.trim(),
+    telefon: document.getElementById('clientTelefon').value.trim(),
+    email: document.getElementById('clientEmail').value.trim(),
+    tipus: document.getElementById('clientTipus').value.trim()||'PCI',
+    prioritat: document.getElementById('clientPrioritat').value,
+    periodicitat: document.getElementById('clientPeriodicitat').value,
+    notes: document.getElementById('clientNotes').value.trim(),
+  };
+  if (!data.nom) { alert('El nom és obligatori'); return; }
+  let clientComplet;
+  if (id) {
+    const idx = clients.findIndex(c=>c.id===+id);
+    clientComplet = { ...clients[idx], ...data };
+    clients[idx] = clientComplet;
+  } else {
+    clientComplet = { ...data, contactes: [] };
+    clients.push(clientComplet);
+  }
+  await guardarUnClient(clientComplet);
+  tancarModal('modalClient');
+  renderClients();
+}
+
+async function eliminarClient(id) {
+  if (!confirm('Eliminar aquest client?')) return;
+  clients = clients.filter(c=>c.id!==id);
+  await eliminarClientDB(id);
+  renderClients();
+}
+
+// ---- MODAL CONTACTE ----
+function obrirModalContacte(clientId) {
+  const c = clients.find(x=>x.id===clientId);
+  const ct = getContacteMes(c);
+  document.getElementById('contacteClientTitol');
+  document.getElementById('modalContacteTitol').textContent = `Registrar contacte · ${MESOS[mesActual]} ${anyActual}`;
+  document.getElementById('contacteClientId').value = clientId;
+  document.getElementById('contacteMes').value = mesActual+1;
+  document.getElementById('contacteAny').value = anyActual;
+  document.getElementById('contacteNota').value = ct?.nota||'';
+  selEstat(ct?.estat||'pendent');
+  document.getElementById('modalContacte').classList.add('open');
+}
+
+function selEstat(e) {
+  document.getElementById('contacteEstat').value = e;
+  ['pendent','contactat','visitat','ajornat'].forEach(x => {
+    document.getElementById('ebtn-'+x).className = 'estat-btn' + (x===e?' selected':'');
+  });
+}
+
+async function guardarContacte() {
+  const clientId = +document.getElementById('contacteClientId').value;
+  const mes = +document.getElementById('contacteMes').value;
+  const any = +document.getElementById('contacteAny').value;
+  const estat = document.getElementById('contacteEstat').value;
+  const nota = document.getElementById('contacteNota').value.trim();
+  const idx = clients.findIndex(c=>c.id===clientId);
+  clients[idx].contactes = clients[idx].contactes.filter(ct=>!(ct.mes===mes&&ct.any===any));
+  clients[idx].contactes.push({ mes, any, estat, nota });
+  await guardarUnClient(clients[idx]);
+  tancarModal('modalContacte');
+  renderClients();
+}
+
+// ---- MODAL IA ----
+function obrirIA(clientId) {
+  chatClientId = clientId;
+  chatHistorial = [];
+  const c = clients.find(x=>x.id===clientId);
+  document.getElementById('modalIATitol').textContent = `🤖 Assistent IA — ${c.nom}`;
+  document.getElementById('chatBox').innerHTML = '';
+  document.getElementById('chatInput').value = '';
+  afegirMissatge('assistant', `Hola! Soc el teu assistent per al client **${c.nom}** (${c.empresa}). Puc ajudar-te a preparar la propera trucada, redactar un correu de seguiment o analitzar l'historial. Què necessites?`);
+  document.getElementById('modalIA').classList.add('open');
+  document.getElementById('chatInput').focus();
+}
+
+function afegirMissatge(role, text) {
+  const box = document.getElementById('chatBox');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function enviarMissatge() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  afegirMissatge('user', text);
+  chatHistorial.push({ role:'user', content: text });
+
+  const c = clients.find(x=>x.id===chatClientId);
+  const historial = c.contactes.map(ct=>`- ${MESOS[ct.mes-1]} ${ct.any}: ${ct.estat}${ct.nota?` (${ct.nota})`:''}`).join('\n')||'Cap contacte registrat.';
+
+  const system = `Ets un assistent de gestió de clients especialitzat en projectes PCI (protecció contra incendis) i seguretat per a Plana Fàbrega (Grup Pyrénées, Andorra).
+
+Client actual:
+- Nom: ${c.nom}
+- Empresa: ${c.empresa}
+- Tipus: ${c.tipus}
+- Prioritat: ${c.prioritat}
+- Notes: ${c.notes||'Cap'}
+
+Historial de contactes:
+${historial}
+
+Respon sempre en català, de forma breu i professional.`;
+
+  // Missatge d'escriptura
+  const box = document.getElementById('chatBox');
+  const typing = document.createElement('div');
+  typing.className = 'msg assistant';
+  typing.style.opacity = '0.5';
+  typing.textContent = 'Escrivint...';
+  box.appendChild(typing);
+  box.scrollTop = box.scrollHeight;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system,
+        messages: chatHistorial
+      })
+    });
+    const data = await res.json();
+    const resposta = data.content?.[0]?.text || 'No he pogut obtenir resposta.';
+    typing.remove();
+    afegirMissatge('assistant', resposta);
+    chatHistorial.push({ role:'assistant', content: resposta });
+  } catch(e) {
+    typing.remove();
+    afegirMissatge('assistant', 'Error de connexió. Torna-ho a intentar.');
+  }
+}
+
+async function refrescar() {
+  document.getElementById('clientsList').innerHTML = '<div class="empty">Actualitzant...</div>';
+  await carregarClients();
+  renderClients();
+}
+
+function tancarModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+init();
+</script>
+</body>
+</html>
